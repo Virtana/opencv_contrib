@@ -669,7 +669,8 @@ class MarkerPrinter:
         markerLength = markerLength * MarkerPrinter.ptPerMeter
         pageBorder = (pageBorder[0] * MarkerPrinter.ptPerMeter, pageBorder[1] * MarkerPrinter.ptPerMeter)
         firstMarkerID = int((chessboardSize[0]*chessboardSize[1])/2)*boardId
-        print(f"Starting board {boardId} at marker id {firstMarkerID}.")
+        lastMarkerID = firstMarkerID + int((chessboardSize[0]*chessboardSize[1])/2) - 1
+        print(f"Board {boardId} contains marker ids {firstMarkerID} through {lastMarkerID}.")
 
         # Check
         path, nameExt = os.path.split(filePath)
@@ -700,6 +701,16 @@ class MarkerPrinter:
                 chessboardSize[0] * squareLength,
                 chessboardSize[1] * squareLength)
             context.fill()
+
+            # Print board id at top-left corner.
+            if pageBorder[0] > 0:
+                font_scale = pageBorder[0] / 1.5
+                context.set_source_rgba(0.0, 0.0, 0.0, 1.0)
+                context.select_font_face("Courier", cairo.FONT_SLANT_NORMAL, 
+                    cairo.FONT_WEIGHT_BOLD)
+                context.set_font_size(font_scale)
+                context.move_to(font_scale/2, font_scale)
+                context.show_text(str(boardId))
 
             for bx in range(chessboardSize[0]):
                 for by in range(chessboardSize[1]):
@@ -1128,7 +1139,7 @@ if __name__ == '__main__':
             help="Save with page border height L length (Unit: meter)", metavar="L")
     
     # generate multiple boards.
-    parser.add_argument("--num_boards", dest="numBoards", default=0, help="Number of boards to be generated, starting at tag id 0.")
+    parser.add_argument("--num_boards", dest="numBoards", default=1, help="Number of boards to be generated, starting at tag id 0.")
 
     # Run
     args = parser.parse_args()
