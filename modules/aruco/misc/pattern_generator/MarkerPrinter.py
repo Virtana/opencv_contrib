@@ -662,12 +662,14 @@ class MarkerPrinter:
 
         return prevImage
 
-    def GenCharucoMarkerImage(filePath, dictionary, chessboardSize, squareLength, markerLength, borderBits=1, subSize=None, pageBorder=(0, 0)):
+    def GenCharucoMarkerImage(filePath, dictionary, chessboardSize, squareLength, markerLength, borderBits=1, subSize=None, pageBorder=(0, 0), boardId=0):
         MarkerPrinter.__CheckCharucoMarkerImage(dictionary, chessboardSize, squareLength, markerLength, borderBits=borderBits, subSize=subSize, pageBorder=pageBorder)
 
         squareLength = squareLength * MarkerPrinter.ptPerMeter
         markerLength = markerLength * MarkerPrinter.ptPerMeter
         pageBorder = (pageBorder[0] * MarkerPrinter.ptPerMeter, pageBorder[1] * MarkerPrinter.ptPerMeter)
+        firstMarkerID = int((chessboardSize[0]*chessboardSize[1])/2)*boardId
+        print(f"Starting board {boardId} at marker id {firstMarkerID}.")
 
         # Check
         path, nameExt = os.path.split(filePath)
@@ -712,7 +714,8 @@ class MarkerPrinter:
                         blockY = by,
                         pageBorderX = pageBorder[0],
                         pageBorderY = pageBorder[1],
-                        mode = "CHARUCO")
+                        mode = "CHARUCO",
+                        firstMarkerID=firstMarkerID)
 
         if(subSize is not None):
             subDivide = (\
@@ -1123,6 +1126,9 @@ if __name__ == '__main__':
         group.add_argument(
             "--" + group.title + "_page_border_y", dest="pageBorderY", default="0",
             help="Save with page border height L length (Unit: meter)", metavar="L")
+    
+    # generate multiple boards.
+    parser.add_argument("--num_boards", dest="numBoards", default=0, help="Number of boards to be generated, starting at tag id 0.")
 
     # Run
     args = parser.parse_args()
@@ -1258,39 +1264,45 @@ if __name__ == '__main__':
             subSizeY = int(args.subSizeY)
             pageBorderX = float(args.pageBorderX)
             pageBorderY = float(args.pageBorderY)
+            numBoards = int(args.numBoards)
         except ValueError as e:
             warnings.warn(str(e))
         else:
-            print("Save ChArUco marker with parms: " + \
-                    str({ \
-                        "fileName": args.fileName, \
-                        "dictionary": args.dictionary, \
-                        "sizeX": sizeX, \
-                        "sizeY": sizeY, \
-                        "squareLength": squareLength, \
-                        "markerLength": markerLength, \
-                        "borderBits": borderBits, \
-                        "subSizeX": subSizeX, \
-                        "subSizeY": subSizeY, \
-                        "pageBorderX": pageBorderX, \
-                        "pageBorderY": pageBorderY, \
-                    }))
+            for boardId in range(numBoards):
+                # TODO(chris@virtanatech.com) Fix filename parsing.
+                fname, ext = os.path.splitext(args.fileName)
+                fileName = fname + "_" + str(boardId) + ext
+                print("Save ChArUco marker with parms: " + \
+                        str({ \
+                            "fileName": fileName, \
+                            "dictionary": args.dictionary, \
+                            "sizeX": sizeX, \
+                            "sizeY": sizeY, \
+                            "squareLength": squareLength, \
+                            "markerLength": markerLength, \
+                            "borderBits": borderBits, \
+                            "subSizeX": subSizeX, \
+                            "subSizeY": subSizeY, \
+                            "pageBorderX": pageBorderX, \
+                            "pageBorderY": pageBorderY, \
+                            "boardId": boardId, \
+                        }))
 
-            subSize = None
+                subSize = None
 
-            if(subSizeX > 0):
-                if(subSizeY > 0):
-                    subSize = (subSizeX, subSizeY)
+                if(subSizeX > 0):
+                    if(subSizeY > 0):
+                        subSize = (subSizeX, subSizeY)
+                    else:
+                        subSize = (subSizeX, sizeY)
                 else:
-                    subSize = (subSizeX, sizeY)
-            else:
-                if(subSizeY > 0):
-                    subSize = (sizeX, subSizeY)
-                else:
-                    subSize = None
+                    if(subSizeY > 0):
+                        subSize = (sizeX, subSizeY)
+                    else:
+                        subSize = None
 
-            # Gen
-            MarkerPrinter.GenCharucoMarkerImage(args.fileName, args.dictionary, (sizeX, sizeY), squareLength, markerLength, borderBits=borderBits, subSize=subSize, pageBorder = (pageBorderX, pageBorderY))
+                # Gen
+                MarkerPrinter.GenCharucoMarkerImage(fileName, args.dictionary, (sizeX, sizeY), squareLength, markerLength, borderBits=borderBits, subSize=subSize, pageBorder = (pageBorderX, pageBorderY), boardId = boardId)
 
     else:
         parser.print_help()
